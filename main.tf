@@ -117,3 +117,91 @@ resource "aws_s3_bucket_policy" "aws_s3_resource" {
     ]
     })
 }
+
+
+
+
+// DESARROLLO Y DESPLIEGUE DE LA API
+
+// Permitiendo a un rol de IAM ser asumido por lambda
+data "aws_iam_policy_document" "aws_iampolicy_data" {
+    statement {
+        effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+    }
+}
+
+// Creacion del IAM Role para Lambda
+resource "aws_iam_role" "aws_iamrole_resource" {
+    name = "aws_iam_role_lambda"
+    assume_role_policy = data.aws_iam_policy_document.aws_iampolicy_data.json
+}
+
+// Creacion del documento IAM Policy con S3 y KMS
+data "aws_iam_policy_document" "aws_iampolicys3cmk_data" {
+    
+  # ----- Permisos S3 -----
+  statement {
+    sid    = "S3Access"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+
+    resources = [
+    #   "arn:aws:s3:::pablo-bucket-seguro/*"
+    aws_s3_bucket.aws_s3_resource.arn
+    ]
+  }
+
+  # ----- Permisos para usar la CMK -----
+  statement {
+    sid    = "KMSAccess"
+    effect = "Allow"
+
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+
+    resources = [
+    #   aws_kms_key.my_cmk.arn
+    aws_kms_key.aws_cmk_resource.arn
+    ]
+  }
+}
+
+
+// Creacion de la politica 
+resource "aws_iam_policy" "aws_iampolicylambda_resource" {
+    name = "lambda_s3_kms_access"
+    policy = data.aws_iam_policy_document.aws_iampolicys3cmk_data.json
+}
+
+// Adjuntar la politica al rol
+resource "aws_iam_role_policy_attachment" "aws_iamattachrole_resource" {
+    role = aws_iam_role.aws_iamrole_resource.name
+    policy_arn = aws_iam_policy.aws_iampolicylambda_resource.arn
+}
+
+
+
+// Recurso de funcion lambda 
+resource "aws_lambda_function" "aws_lambda_resource" {
+    function_name = "lambda_api_code"
+    role = aws_iam_role.aws_iamrole_resource.arn
+    handler = "app.lambda_handler"
+    runtime = "python3.12"
+
+    filename = "${path.module}/lambda/lambda.zip"
+    source_code_hash = filebase64sha256("${path.module}/lambda/lambda.zip")
+}
