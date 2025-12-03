@@ -13,8 +13,26 @@ def respond(status, message):
     }
 
 
+# def handler(event, context):
+#     try:
+#         action = event.get("action")
+
+#         if action == "put":
+#             return upload_file(event)
+#         elif action == "delete":
+#             return delete_file(event)
+#         else:
+#             return respond(400, "Acción inválida. Usa 'put' o 'delete'.")
+
+#     except Exception as e:
+#         return respond(500, f"Error interno: {str(e)}")
+
 def handler(event, context):
     try:
+        # API Gateway manda el JSON en event["body"]
+        if "body" in event:
+            event = json.loads(event["body"])
+
         action = event.get("action")
 
         if action == "put":
@@ -26,6 +44,7 @@ def handler(event, context):
 
     except Exception as e:
         return respond(500, f"Error interno: {str(e)}")
+
 
 
 # -----------------------------
