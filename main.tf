@@ -292,3 +292,112 @@ resource "aws_api_gateway_stage" "prod_stage" {
     deployment_id = aws_api_gateway_deployment.aws_apideploy_resource.id
     stage_name = "prod"
 }
+
+
+
+// IMPLEMENTACION DE REGLAS DE SEGURIDAD CON AWS WAF
+
+// Creacion del recurso de la web acl
+resource "aws_wafv2_web_acl" "aws_waf_resource" {
+  name = "api-gateway-waf"
+  description = "WAF para proteger API Gateway"
+  scope = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  // Creacion de la primer regla --> Rate Limiting
+  rule{
+    name = "RateLimitRule"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit = 10
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name = "RateLimitRule"
+      sampled_requests_enabled = true
+    }
+  }
+
+  // Creacion de la segunda regla --> Bloque temporal del endpoint DELETE
+  rule {
+    name = "BlockDeleteWithPattern"
+    priority = 2
+
+    action {
+      block {
+        custom_response {
+          response_code = 403
+        }
+      }
+    }
+
+    statement {
+      and_statement {
+        statement {
+          byte_match_statement {
+            search_string = "/delete"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type = "LOWERCASE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+
+        statement {
+          byte_match_statement {
+            search_string = "DELETE_BLOCK_TRIGGER"
+            field_to_match {
+              body {
+                oversize_handling = "CONTINUE"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type = "NONE"
+            }
+            positional_constraint = "CONTAINS"
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name = "BlockDeleteWithPattern"
+      sampled_requests_enabled = true
+    }
+  }
+
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name = "APIGatewayWAF"
+    sampled_requests_enabled = true
+  }
+
+  tags = {
+    Name = "API-Gateway-WAF"
+  }
+}
+
+// Asociar la web ACL con API Gateway
+resource "aws_wafv2_web_acl_association" "api_gateway_waf" {
+  resource_arn = aws_api_gateway_stage.prod_stage.arn
+  web_acl_arn = aws_wafv2_web_acl.aws_waf_resource.arn
+}
