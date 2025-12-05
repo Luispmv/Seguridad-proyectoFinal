@@ -401,3 +401,72 @@ resource "aws_wafv2_web_acl_association" "api_gateway_waf" {
   resource_arn = aws_api_gateway_stage.prod_stage.arn
   web_acl_arn = aws_wafv2_web_acl.aws_waf_resource.arn
 }
+
+
+// CONFIGURACION DEL PLAN DE BACKUP AUTOMATICO --> De aqui para abajo revisar el codigo y que todo funcione mediante tests
+
+// Backup Vault
+resource "aws_backup_vault" "aws_backup_vault_resource" {
+  name = "s3-backup-vault"
+  kms_key_arn = aws_kms_key.aws_cmk_resource.arn
+
+  tags = {
+    Name = "S3-Backup-Vault"
+  }
+}
+
+
+// Plan de Backup
+resource "aws_backup_plan" "aws_backup_plan_resource" {
+  name = "s3-backup-plan"
+
+  rule {
+    rule_name         = "daily_backup"
+    target_vault_name = aws_backup_vault.aws_backup_vault_resource.name
+    schedule          = "cron(0 18 ? * TUE *)"
+
+    lifecycle {
+      delete_after = 75
+    }
+  }
+
+  tags = {
+    Name = "S3-Backup-Plan"
+  }
+}
+
+// Asignacion del bucket de S3 al plan de backup
+
+resource "aws_iam_role" "backup_role" {
+  name = "aws-backup-service-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "backup.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+// Adjuntar politicas de AWS Backup al rol
+resource "aws_iam_role_policy_attachment" "backup_policy" {
+  role       = aws_iam_role.backup_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+// Asignación del bucket S3 al plan de backup
+resource "aws_backup_selection" "backup_selection" {
+  name         = "s3-backup-selection"
+  plan_id      = aws_backup_plan.aws_backup_plan_resource.id
+  iam_role_arn = aws_iam_role.backup_role.arn
+
+  resources = [
+    aws_s3_bucket.aws_s3_resource.arn
+  ]
+}
