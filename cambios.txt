@@ -1,0 +1,83 @@
+PS C:\Users\lpmvd\seguridad\seguridadProyectoFinal> git log
+commit 0103c3e8fa2bec1f577c829dc78821c532700245 (HEAD -> main, origin/main)
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Dec 5 10:04:47 2025 -0600
+
+    feat: Implementar sistema automatizado de backups para bucket S3. Se crea un vault de backup cifrado con KMS, un plan de ejecución semanal los martes a las 18:00 UTC con retención de 75 días, un rol IAM con permisos de servicio de AWS Backup, y se asigna el bucket S3 como recurso protegido para garantizar la recuperación ante desastres.
+
+commit 3bd66dee62836fa544c007d7936c7f9b78a9991e
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Thu Dec 4 22:56:27 2025 -0600
+
+    feat: Implementar WAF para API Gateway con reglas de protección contra ataques. Se crea el recurso aws_wafv2_web_acl api-gateway-waf con dos reglas principales: 1) Rate limiting de 10 solicitudes por IP para mitigar ataques de fuerza bruta, y 2) Bloqueo temporal de solicitudes DELETE que contengan la ruta /delete y el patrón DELETE_BLOCK_TRIGGER en el cuerpo, devolviendo error 403. Se configuran métricas de CloudWatch para monitoreo y se asocia el WAF al stage de API Gateway para su aplicación efectiva.
+
+commit e2ea0fee9f9304649b84d1ccfbf304c7c6e8efa3
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Wed Dec 3 12:21:15 2025 -0600
+
+    mend
+
+commit 03ba0aae01cddbb262625247152465209765edd2
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Wed Dec 3 10:51:38 2025 -0600
+
+    Implementar función Lambda con rol de IAM seguro para acceso a S3 y KMS
+
+    Crear rol de IAM con política de confianza restringida al servicio Lambda
+
+    Definir política de privilegios mínimos para S3 (solo PutObject, DeleteObject)
+
+    Definir permisos de KMS para operaciones de cifrado/descifrado
+
+    Adjuntar política personalizada al rol de ejecución de Lambda
+
+    Implementar función Lambda en Python 3.12 con manejador específico
+
+    Garantizar restricciones a nivel de recurso al bucket de S3 y clave KMS específicos
+
+    Implementar seguimiento de hash de código para optimización de despliegues
+
+    Seguridad: Cumple el principio de privilegios mínimos, no se otorgan permisos administrativos
+
+commit 94fa125238d10631878827349434dfc5c54e209d
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Wed Dec 3 09:56:35 2025 -0600
+
+    Creacion de una llave CMK para utilizar en S3, esta se borrara en 7 dias y servira para encriptar y desencriptar, esta llave le adjuntamos permisos sobre S3, por ultimo cambiamos el cifrado predeterminado del bucket utilizando la CMK que hemos creado
+
+commit b0b00b110ea5fe92be86e81a667bc06f8d401e90
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Nov 28 16:00:35 2025 -0600
+
+    Añadiendo una politica de bucket que evita que los usuarios eliminen los objetos de S3 si no tienen MFA activado
+
+commit f6b1220871fcb7ede27cae55b1478c85981c6767
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Nov 28 14:31:25 2025 -0600
+
+    Agregando versionamiento al bucket de S3 para ello tenemos que llamar a un nuevo recurso de AWS que esta relacionado a S3 el versioning
+
+commit 9a9807d107e79a46c72b90f97e3941bffb6dd88a
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Nov 28 14:25:09 2025 -0600
+
+    Añadiendo un bucket S3 en la region de Oregon
+
+commit 8792489f5634e2f4710717a0a196f9bc7035f7ae
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Nov 28 14:12:20 2025 -0600
+
+    Agregando informacion sobre las regiones de AWS en las que se desplegaran los recursos
+
+commit 3b23794ff69c5f80e4a09d15f1784202ab4b3d3b
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Nov 28 14:05:46 2025 -0600
+
+    Colocando a AWS como proveedor de nube para nuestra infraestructura.
+
+commit 4bb171efe787ea82b822a3a0620b979c5ed8ccf8
+Author: Luispmv <luispmv07@hotmail.com>
+Date:   Fri Nov 28 14:01:23 2025 -0600
+
+    Inicializando el repositorio y agregando el archivo .gitignore con informacion que no debe irse al repositorio publico
+(END)
